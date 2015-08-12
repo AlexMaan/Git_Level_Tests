@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using Pathfinding;
 
 namespace Pathfinding {
@@ -42,23 +43,20 @@ namespace Pathfinding {
 		/** The previous path */
 		GraphNode[] prevNodes;
 		
-		/** Previous seed. Used to figure out which nodes to revert penalty on without storing them in an array */
-		int prevSeed;
+		int prevSeed; /**< Previous seed. Used to figure out which nodes to revert penalty on without storing them in an array */
+		int prevPenalty = 0; /**< The previous penalty used. Stored just in case it changes during operation */
 		
-		/** The previous penalty used. Stored just in case it changes during operation */
-		int prevPenalty;
+		bool waitingForApply = false;
 		
-		bool waitingForApply;
-		
-		readonly System.Object lockObject = new System.Object ();
+		System.Object lockObject = new System.Object ();
 		
 		/** A random object */
-		System.Random rnd = new System.Random ();
+		private System.Random rnd = new System.Random ();
 		
 		/** A random object generating random seeds for other random objects */
-		readonly System.Random seedGenerator = new System.Random ();
+		private System.Random seedGenerator = new System.Random ();
 		
-		bool destroyed;
+		private bool destroyed = false;
 		
 		/** The nodes waiting to have their penalty changed */
 		GraphNode[] toBeApplied;

@@ -1,4 +1,6 @@
+//#define ASTARDEBUG
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using Pathfinding;
 using Pathfinding.Util;
@@ -39,23 +41,20 @@ namespace Pathfinding {
 			
 			List<Vector3> funnelPath = ListPool<Vector3>.Claim ();
 			
-			// Claim temporary lists and try to find lists with a high capacity
+			//Claim temporary lists and try to find lists with a high capacity
 			List<Vector3> left = ListPool<Vector3>.Claim (path.Count+1);
 			List<Vector3> right = ListPool<Vector3>.Claim (path.Count+1);
 			
 			AstarProfiler.StartProfile ("Construct Funnel");
 			
-			// Add start point
 			left.Add (vectorPath[0]);
 			right.Add (vectorPath[0]);
 			
-			// Loop through all nodes in the path (except the last one)
 			for (int i=0;i<path.Count-1;i++) {
-				// Get the portal between path[i] and path[i+1] and add it to the left and right lists
-				bool portalWasAdded = path[i].GetPortal (path[i+1], left, right, false);
+				bool a = path[i].GetPortal (path[i+1], left, right, false);
+				bool b = false;//path[i+1].GetPortal (path[i], right, left, true);
 				
-				if (!portalWasAdded) {
-					// Fallback, just use the positions of the nodes
+				if (!a && !b) {
 					left.Add ((Vector3)path[i].position);
 					right.Add ((Vector3)path[i].position);
 					
@@ -64,17 +63,15 @@ namespace Pathfinding {
 				}
 			}
 			
-			// Add end point
 			left.Add (vectorPath[vectorPath.Count-1]);
 			right.Add (vectorPath[vectorPath.Count-1]);
 			
 			if (!RunFunnel (left,right,funnelPath)) {
-				// If funnel algorithm failed, degrade to simple line
+				//If funnel algorithm failed, degrade to simple line
 				funnelPath.Add (vectorPath[0]);
 				funnelPath.Add (vectorPath[vectorPath.Count-1]);
 			}
 			
-			// Release lists back to the pool
 			ListPool<Vector3>.Release (p.vectorPath);
 			p.vectorPath = funnelPath;
 			
@@ -85,7 +82,7 @@ namespace Pathfinding {
 		/** Calculate a funnel path from the \a left and \a right portal lists.
 		 * The result will be appended to \a funnelPath
 		 */
-		public static bool RunFunnel (List<Vector3> left, List<Vector3> right, List<Vector3> funnelPath) {
+		public bool RunFunnel (List<Vector3> left, List<Vector3> right, List<Vector3> funnelPath) {
 			
 			if (left == null) throw new System.ArgumentNullException("left");
 			if (right == null) throw new System.ArgumentNullException("right");
@@ -117,6 +114,10 @@ namespace Pathfinding {
 			//Test
 			while (Polygon.IsColinear (left[0],left[1],right[1]) || Polygon.Left (left[1],right[1],swPoint) == Polygon.Left (left[1],right[1],left[0])) {
 				
+	#if ASTARDEBUG
+				Debug.DrawLine (left[1],right[1],new Color (0,0,0,0.5F));
+				Debug.DrawLine (left[0],swPoint,new Color (0,0,0,0.5F));
+	#endif
 				left.RemoveAt (1);
 				right.RemoveAt (1);
 				
@@ -138,6 +139,17 @@ namespace Pathfinding {
 				right = tmp;
 			}
 			
+			#if ASTARDEBUG
+			for (int i=0;i<left.Count-1;i++) {
+				Debug.DrawLine (left[i],left[i+1],Color.red);
+				Debug.DrawLine (right[i],right[i+1],Color.magenta);
+				Debug.DrawRay (right[i], Vector3.up,Color.magenta);
+				
+			}
+			for (int i=0;i<left.Count;i++) {
+				//Debug.DrawLine (right[i],left[i], Color.cyan);
+			}
+			#endif
 			
 			funnelPath.Add (left[0]);
 			

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using Pathfinding;
 
@@ -31,9 +32,9 @@ namespace Pathfinding {
 		[HideInInspector]
 		public LayerMask mask = -1;
 		[HideInInspector]
-		public bool thickRaycast;
+		public bool thickRaycast = false;
 		[HideInInspector]
-		public float thickRaycastRadius;
+		public float thickRaycastRadius = 0;
 		[HideInInspector]
 		public Vector3 raycastOffset = Vector3.zero;
 		
@@ -44,13 +45,13 @@ namespace Pathfinding {
 		//public bool overrideClampedExacts = false;
 		
 		[HideInInspector]
-		public bool subdivideEveryIter;
+		public bool subdivideEveryIter = false;
 		
 		public int iterations = 2;
 		
 		/** Use raycasting on the graphs. Only currently works with GridGraph and NavmeshGraph and RecastGraph. \astarpro */
 		[HideInInspector]
-		public bool useGraphRaycasting;
+		public bool useGraphRaycasting = false;
 		
 		/** To avoid too many memory allocations. An array is kept between the checks and filled in with the positions instead of allocating a new one every time.*/
 		private static List<Vector3> nodes;
@@ -106,36 +107,89 @@ namespace Pathfinding {
 					Vector3 start = nodes[i];
 					Vector3 end = nodes[i+2];
 					
-					var watch = System.Diagnostics.Stopwatch.StartNew();
+					/*if (i == 0 && exactStartAndEnd) {
+						if (overrideClampedExacts) {
+							start = p.originalStartPoint;
+						} else {
+							start = p.startPoint;
+						}
+					}
+					
+					if (i == nodes.Count-3 && exactStartAndEnd) {
+						if (overrideClampedExacts) {
+							end = p.originalEndPoint;
+						} else {
+							end = p.endPoint;
+						}
+					}*/
+					
+					//if (ValidateLine (nodes[i],nodes[i+2],start,end)) {
+					
+					System.Diagnostics.Stopwatch watch = new System.Diagnostics.Stopwatch ();
+					watch.Start ();
 					
 					if (ValidateLine (null,null,start,end)) {
+						//Debug.Log ("+++ Simplified "+i+" +++");
+						//Debug.DrawLine (start+raycastOffset,end+raycastOffset,new Color (1,0,0.5F));
 						nodes.RemoveAt (i+1);
+						//i++;
 					} else {
+						//Debug.DrawLine (start,end,Color.red);
 						i++;
 					}
 					
 					watch.Stop ();
+					//Debug.Log ("Validate Line Took "+(watch.ElapsedTicks * 0.0001) +" Magnitude: "+(start-end).magnitude);
 				}
 				
 			}
 			
+			//ValidateLine (null,null,nodes[0],nodes[nodes.Count-1]);
+			
 			p.vectorPath.Clear ();
 			p.vectorPath.AddRange (nodes);
+			
+			//System.DateTime endTime2 = System.DateTime.UtcNow;
+			//float theTime2 = (endTime2-startTime).Ticks*0.0001F;
+			
+			//Debug.Log ("Raycast Modifier : Time "+theTime2.ToString ("0.00"));
+			/*p.vectorPath = new Vector3[p.path.Length];
+			for (int i=0;i<p.path.Length;i++) {
+				
+				Vector3 point = p.path[i].position;
+					
+				if (i == 0 && exactStartAndEnd) {
+					if (overrideClampedExacts) {
+						point = p.originalStartPoint;
+					} else {
+						point = p.startPoint;
+					}
+				} else if (i == p.path.Length-1 && exactStartAndEnd) {
+					if (overrideClampedExacts) {
+						point = p.originalEndPoint;
+					} else {
+						point = p.endPoint;
+					}
+				}
+					
+				p.vectorPath[i] = point;
+			}*/
 		}
 		
-		/** Check if a straight path between v1 and v2 is valid */
 		public bool ValidateLine (GraphNode n1, GraphNode n2, Vector3 v1, Vector3 v2) {
 			
 			if (useRaycasting) {
-				// Use raycasting to check if a straight path between v1 and v2 is valid
+				
 				if (thickRaycast && thickRaycastRadius > 0) {
 					RaycastHit hit;
 					if (Physics.SphereCast (v1+raycastOffset, thickRaycastRadius,v2-v1,out hit, (v2-v1).magnitude,mask)) {
+						//Debug.DrawRay (hit.point,Vector3.up*5,Color.yellow);
 						return false;
 					}
 				} else {
 					RaycastHit hit;
 					if (Physics.Linecast (v1+raycastOffset,v2+raycastOffset,out hit, mask)) {
+						//Debug.DrawRay (hit.point,Vector3.up*5,Color.yellow);
 						return false;
 					}
 				}
@@ -147,7 +201,7 @@ namespace Pathfinding {
 			}
 			
 			if (useGraphRaycasting && n1 != null && n2 != null) {
-				// Use graph raycasting to check if a straight path between v1 and v2 is valid
+				
 				NavGraph graph = AstarData.GetGraph (n1);
 				NavGraph graph2 = AstarData.GetGraph (n2);
 				
@@ -156,7 +210,7 @@ namespace Pathfinding {
 				}
 				
 				if (graph != null) {
-					var rayGraph = graph as IRaycastableGraph;
+					IRaycastableGraph rayGraph = graph as IRaycastableGraph;
 					
 					if (rayGraph != null) {
 						if (rayGraph.Linecast (v1,v2, n1)) {

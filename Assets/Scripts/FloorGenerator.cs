@@ -3,6 +3,7 @@ using System.Collections;
 
 public class FloorGenerator : MonoBehaviour
 {
+    public static FloorGenerator Instance;
     public GameObject FloorCell;
     public GameObject PathNode;
     public Transform CellsRoot;
@@ -12,8 +13,14 @@ public class FloorGenerator : MonoBehaviour
     public int FieldSizeX;
     public int FieldSizeY;
 
+    void Awake()
+    {
+        Instance = this;
+    }
+
     public void GenerateField()
     {
+        int index = 0;
         for (int i = 0; i < CellsRoot.childCount; )
         {
             DestroyImmediate(CellsRoot.GetChild(i).gameObject);
@@ -24,7 +31,9 @@ public class FloorGenerator : MonoBehaviour
             for (int j = -FieldSizeY/2; j < FieldSizeY/2; j++)
             {
                 GameObject cell = Instantiate(FloorCell, transform.position + new Vector3(i * CellSizeX, 0f, j * CellSizeY), Quaternion.Euler(90f, 0f, 0f)) as GameObject;
+                cell.GetComponent<FloorCell>().ID = index;
                 cell.transform.parent = CellsRoot.transform;
+                index++;
             }
         }
     }
@@ -44,6 +53,33 @@ public class FloorGenerator : MonoBehaviour
                 GameObject node = Instantiate(PathNode, CellsRoot.GetChild(i).position, Quaternion.identity) as GameObject;
                 node.transform.parent = NodesRoot;
             }
+
+            if (CellsRoot.GetChild(i).GetComponent<FloorCell>().Type == global::FloorCell.CellType.Interactive)
+            {
+                GameObject node = Instantiate(PathNode, CellsRoot.GetChild(i).position, Quaternion.identity) as GameObject;
+                node.transform.parent = NodesRoot;
+            }
+
+            if (CellsRoot.GetChild(i).GetComponent<FloorCell>().Type == global::FloorCell.CellType.Door)
+            {
+                if (CellsRoot.GetChild(i).GetComponent<FloorCell>().DoorCellState == global::FloorCell.DoorState.Opened)
+                {
+                    GameObject node = Instantiate(PathNode, CellsRoot.GetChild(i).position, Quaternion.identity) as GameObject;
+                    node.transform.parent = NodesRoot;
+                }
+            }
         }
+    }
+
+    public void RemovePathNode(int index)
+    {
+        DestroyImmediate(NodesRoot.GetChild(index).gameObject);
+    }
+
+    public void AddPathNode(int index)
+    {
+        Debug.Log(index);
+        GameObject node = Instantiate(PathNode, CellsRoot.GetChild(index).position, Quaternion.identity) as GameObject;
+        node.transform.parent = NodesRoot;
     }
 }

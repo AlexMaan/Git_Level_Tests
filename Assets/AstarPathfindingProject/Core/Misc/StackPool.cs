@@ -1,5 +1,6 @@
 //#define ASTAR_NO_POOLING //@SHOWINEDITOR Disable pooling for some reason. Could be debugging or just for measuring the difference.
 
+using System;
 using System.Collections.Generic;
 
 namespace Pathfinding.Util
@@ -23,7 +24,7 @@ namespace Pathfinding.Util
 	public static class StackPool<T>
 	{
 		/** Internal pool */
-		static readonly List<Stack<T>> pool;
+		static List<Stack<T>> pool;
 		
 		/** Static constructor */
 		static StackPool ()
@@ -37,20 +38,24 @@ namespace Pathfinding.Util
 		 * After usage, this stack should be released using the Release function (though not strictly necessary).
 		 */
 		public static Stack<T> Claim () {
+#if ASTAR_NO_POOLING
+			return new Stack<T>();
+#else
 			if (pool.Count > 0) {
 				Stack<T> ls = pool[pool.Count-1];
 				pool.RemoveAt(pool.Count-1);
 				return ls;
+			} else {
+				return new Stack<T>();
 			}
-
-			return new Stack<T>();
+#endif		
 		}
 		
 		/** Makes sure the pool contains at least \a count pooled items.
 		 * This is good if you want to do all allocations at start.
 		 */
 		public static void Warmup (int count) {
-			var tmp = new Stack<T>[count];
+			Stack<T>[] tmp = new Stack<T>[count];
 			for (int i=0;i<count;i++) tmp[i] = Claim ();
 			for (int i=0;i<count;i++) Release (tmp[i]);
 		}
@@ -60,11 +65,13 @@ namespace Pathfinding.Util
 		 * Releasing a stack twice will cause an error.
 		 */
 		public static void Release (Stack<T> stack) {
+#if !ASTAR_NO_POOLING
 			for (int i=0;i<pool.Count;i++)
 				if (pool[i] == stack) UnityEngine.Debug.LogError ("The Stack is released even though it is inside the pool");
 			
 			stack.Clear ();
 			pool.Add (stack);
+#endif
 		}
 		
 		/** Clears all pooled stacks of this type.

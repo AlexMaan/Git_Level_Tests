@@ -85,6 +85,7 @@ public class AstarDebugger : MonoBehaviour {
 	private GUIStyle style;
 	
 	private Camera cam;
+	private LineRenderer lineRend;
 	
 	float graphWidth = 100;
 	float graphHeight = 100;
@@ -95,11 +96,13 @@ public class AstarDebugger : MonoBehaviour {
 		useGUILayout = false;
 		
 		fpsDrops = new float[fpsDropCounterSize];
-
-		cam = GetComponent<Camera>();
-		if (cam == null) {
+		
+		if (GetComponent<Camera>() != null) {
+			cam = GetComponent<Camera>();
+		} else {
 			cam = Camera.main;
 		}
+		
 		
 		graph = new GraphPoint[graphBufferSize];
 		
@@ -113,6 +116,15 @@ public class AstarDebugger : MonoBehaviour {
 	
 	PathTypeDebug[] debugTypes = new PathTypeDebug[] {
 		new PathTypeDebug ("ABPath", PathPool<ABPath>.GetSize, PathPool<ABPath>.GetTotalCreated)
+#if !AstarFree && FALSE
+		,
+		new PathTypeDebug ("MultiTargetPath", PathPool<MultiTargetPath>.GetSize, PathPool<MultiTargetPath>.GetTotalCreated),
+		new PathTypeDebug ("RandomPath", PathPool<RandomPath>.GetSize, PathPool<RandomPath>.GetTotalCreated),
+		new PathTypeDebug ("FleePath", PathPool<FleePath>.GetSize, PathPool<FleePath>.GetTotalCreated),
+		new PathTypeDebug ("ConstantPath", PathPool<ConstantPath>.GetSize, PathPool<ConstantPath>.GetTotalCreated),
+		new PathTypeDebug ("FloodPath", PathPool<FloodPath>.GetSize, PathPool<FloodPath>.GetTotalCreated),
+		new PathTypeDebug ("FloodPathTracer", PathPool<FloodPathTracer>.GetSize, PathPool<FloodPathTracer>.GetTotalCreated)
+#endif
 	};
 	
 	struct PathTypeDebug {
@@ -296,6 +308,11 @@ public class AstarDebugger : MonoBehaviour {
 				if (astar == null) {
 					text.Append ("\nNo AstarPath Object In The Scene");
 				} else {
+#if ProfileAstar
+					double searchSpeed = (double)AstarPath.TotalSearchedNodes*10000 / (double)AstarPath.TotalSearchTime;
+					
+					text.Append ("\nSearch Speed	(nodes/ms)	").Append (searchSpeed.ToString ("0")).Append (" ("+AstarPath.TotalSearchedNodes+" / ").Append (((double)AstarPath.TotalSearchTime/10000F).ToString ("0")+")");
+#endif
 					
 					if (Pathfinding.Util.ListPool<Vector3>.GetSize() > maxVecPool) maxVecPool = Pathfinding.Util.ListPool<Vector3>.GetSize();
 					if (Pathfinding.Util.ListPool<Pathfinding.GraphNode>.GetSize() > maxNodePool) maxNodePool = Pathfinding.Util.ListPool<Pathfinding.GraphNode>.GetSize();

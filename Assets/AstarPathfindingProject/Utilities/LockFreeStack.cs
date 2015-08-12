@@ -1,3 +1,5 @@
+using UnityEngine;
+using System.Collections;
 using System.Threading;
 
 namespace Pathfinding.Util {
@@ -13,14 +15,14 @@ namespace Pathfinding.Util {
 		
 		public Path head;
 		
-#if UNITY_IPHONE || UNITY_PSP2 || UNITY_XBOXONE || UNITY_PS3 || UNITY_PS4 || UNITY_WIIU
+#if UNITY_IPHONE || UNITY_PSP2
 		private System.Object lockObj = new System.Object ();
 #endif
 		
 		/** Pushes a path onto the stack.
 		  * Will loop while trying to set the head of the stack to \a p. */
 		public void Push (Path p) {
-#if UNITY_IPHONE || UNITY_PSP2 || UNITY_XBOXONE || UNITY_PS3 || UNITY_PS4 || UNITY_WIIU
+#if UNITY_IPHONE || UNITY_PSP2
 			lock (lockObj) {
 				p.next = head;
 				head = p;
@@ -47,7 +49,7 @@ namespace Pathfinding.Util {
 		 * \endcode
 		 */
 		public Path PopAll () {
-#if UNITY_IPHONE || UNITY_PSP2 || UNITY_XBOXONE || UNITY_PS3 || UNITY_PS4 || UNITY_WIIU
+#if UNITY_IPHONE || UNITY_PSP2
 			lock (lockObj) {
 				Path h = head;
 				head = null;

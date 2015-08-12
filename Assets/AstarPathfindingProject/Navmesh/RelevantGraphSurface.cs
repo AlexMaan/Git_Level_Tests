@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 using Pathfinding;
 
 namespace Pathfinding {
@@ -49,7 +50,7 @@ namespace Pathfinding {
 			if (root == null) {
 				root = this;
 			} else {
-				next = root;
+				this.next = root;
 				root.prev = this;
 				root = this;
 			}
@@ -57,7 +58,7 @@ namespace Pathfinding {
 		
 		void OnDisable () {
 			if (root == this) {
-				root = next;
+				root = this.next;
 				if (root != null) root.prev = null;
 			} else {
 				if (prev != null) prev.next = next;
@@ -76,7 +77,7 @@ namespace Pathfinding {
 		}
 		
 		public static void FindAllGraphSurfaces () {
-			var srf = GameObject.FindObjectsOfType(typeof(RelevantGraphSurface)) as RelevantGraphSurface[];
+			RelevantGraphSurface[] srf = GameObject.FindObjectsOfType(typeof(RelevantGraphSurface)) as RelevantGraphSurface[];
 			for (int i=0;i<srf.Length;i++) {
 				srf[i].OnDisable ();
 				srf[i].OnEnable ();

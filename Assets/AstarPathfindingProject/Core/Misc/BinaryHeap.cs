@@ -1,37 +1,29 @@
+//#define ASTARDEBUG
 #define TUPLE
 #pragma warning disable 162
 #pragma warning disable 429
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 using Pathfinding;
 
 namespace Pathfinding {
-	/** Binary heap implementation.
-	 * Binary heaps are really fast for ordering nodes in a way that makes it possible to get the node with the lowest F score.
-	 * Also known as a priority queue.
+	/** Binary heap implementation. Binary heaps are really fast for ordering nodes in a way that makes it possible to get the node with the lowest F score. Also known as a priority queue.
 	 * 
-	 * This has actually been rewritten as a d-ary heap (by default a 4-ary heap) for performance, but it's the same principle.
+	 * This has actually been rewritten as an n-ary heap (by default a 4-ary heap) for performance, but it's the same principle.
 	 * 
 	 * \see http://en.wikipedia.org/wiki/Binary_heap
-	 * \see https://en.wikipedia.org/wiki/D-ary_heap
 	 */
 	public class BinaryHeapM { 
 
-		/** Number of items in the tree */
-		public int numberOfItems;
-
-		/** The tree will grow by at least this factor every time it is expanded */
+		public int numberOfItems; 
+		
 		public float growthFactor = 2;
 
-		/**
-		 * Number of children of each node in the tree.
-		 * Different values have been tested and 4 has been empirically found to perform the best.
-		 * \see https://en.wikipedia.org/wiki/D-ary_heap
-		 */
 		public const int D = 4;
 
-		/** Sort nodes by G score if there is a tie when comparing the F score */
 		const bool SortGScores = true;
 
-		/** Internal backing array for the tree */
 		private Tuple[] binaryHeap; 
 
 		private struct Tuple {
@@ -64,7 +56,7 @@ namespace Pathfinding {
 		/** Adds a node to the heap */
 		public void Add(PathNode node) {
 			
-			if (node == null) throw new System.ArgumentNullException ("node");
+			if (node == null) throw new System.ArgumentNullException ("Sending null node to BinaryHeap");
 
 			if (numberOfItems == binaryHeap.Length) {
 				int newSize = System.Math.Max(binaryHeap.Length+4,(int)System.Math.Round(binaryHeap.Length*growthFactor));
@@ -73,27 +65,50 @@ namespace Pathfinding {
 						"\nRemove this check (in BinaryHeap.cs) if you are sure that it is not caused by a bug");
 				}
 
-				var tmp = new Tuple[newSize];
+				Tuple[] tmp = new Tuple[newSize];
 
 				for (int i=0;i<binaryHeap.Length;i++) {
 					tmp[i] = binaryHeap[i];
 				}
+#if ASTARDEBUG
+				Debug.Log ("Resizing binary heap to "+newSize);
+#endif
 				binaryHeap = tmp;
+				
+				//Debug.Log ("Forced to discard nodes because of binary heap size limit, please consider increasing the size ("+numberOfItems +" "+binaryHeap.Length+")");
+				//numberOfItems--;
 			}
 
-			var obj = new Tuple(node.F,node);
+			Tuple obj = new Tuple(node.F,node);
 			binaryHeap[numberOfItems] = obj;
+
+			//node.heapIndex = numberOfItems;//Heap index
 
 			int bubbleIndex = numberOfItems;
 			uint nodeF = node.F;
 			uint nodeG = node.G;
+
+			//Debug.Log ( "Adding node with " + nodeF + " to index " + numberOfItems);
 			
 			while (bubbleIndex != 0 ) {
 				int parentIndex = (bubbleIndex-1) / D;
 
+				//Debug.Log ("Testing " + nodeF + " < " + binaryHeap[parentIndex].F);
+
 				if (nodeF < binaryHeap[parentIndex].F || (nodeF == binaryHeap[parentIndex].F && nodeG > binaryHeap[parentIndex].node.G)) {
+
+				   	
+					//binaryHeap[bubbleIndex].f <= binaryHeap[parentIndex].f) { /* \todo Wouldn't it be more efficient with '<' instead of '<=' ? * /
+					//Node tmpValue = binaryHeap[parentIndex];
+					
+					//tmpValue.heapIndex = bubbleIndex;//HeapIndex
+					
 					binaryHeap[bubbleIndex] = binaryHeap[parentIndex];
 					binaryHeap[parentIndex] = obj;
+					
+					//binaryHeap[bubbleIndex].heapIndex = bubbleIndex; //Heap index
+					//binaryHeap[parentIndex].heapIndex = parentIndex; //Heap index
+					
 					bubbleIndex = parentIndex;
 				} else {
 					break;
@@ -101,16 +116,21 @@ namespace Pathfinding {
 			}
 
 			numberOfItems++;
+
+			//Validate();
 		}
 		
 		/** Returns the node with the lowest F score from the heap */
 		public PathNode Remove() {
 			numberOfItems--;
 			PathNode returnItem = binaryHeap[0].node;
+
+		 	//returnItem.heapIndex = 0;//Heap index
 			
 			binaryHeap[0] = binaryHeap[numberOfItems];
+			//binaryHeap[1].heapIndex = 1;//Heap index
 			
-			int swapItem = 0, parent;
+			int swapItem = 0, parent = 0;
 			
 			do {
 
@@ -185,12 +205,16 @@ namespace Pathfinding {
 				// One if the parent's children are smaller or equal, swap them
 				if (parent != swapItem) {
 					var tmpIndex = binaryHeap[parent];
+					//tmpIndex.heapIndex = swapItem;//Heap index
+					
 					binaryHeap[parent] = binaryHeap[swapItem];
 					binaryHeap[swapItem] = tmpIndex;
+					
+					//binaryHeap[parent].heapIndex = parent;//Heap index
 				} else {
 					break;
 				}
-			} while (true);
+			} while (true);//parent != swapItem);
 
 			//Validate ();
 
@@ -209,6 +233,9 @@ namespace Pathfinding {
 		/** Rebuilds the heap by trickeling down all items.
 		 * Usually called after the hTarget on a path has been changed */
 		public void Rebuild () {
+#if ASTARDEBUG
+			int changes = 0;
+#endif
 			
 			for (int i=2;i<numberOfItems;i++) {
 				int bubbleIndex = i;
@@ -222,6 +249,9 @@ namespace Pathfinding {
 						binaryHeap[bubbleIndex] = binaryHeap[parentIndex];
 						binaryHeap[parentIndex] = node;
 						bubbleIndex = parentIndex;
+#if ASTARDEBUG
+						changes++;
+#endif
 					} else {
 						break;
 					}
@@ -229,6 +259,9 @@ namespace Pathfinding {
 				
 			}
 			
+#if ASTARDEBUG
+			Debug.Log ("+++ Rebuilt Heap - "+changes+" changes +++");
+#endif
 			
 		}
 	}

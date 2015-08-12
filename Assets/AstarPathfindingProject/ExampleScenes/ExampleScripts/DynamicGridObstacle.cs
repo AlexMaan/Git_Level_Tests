@@ -1,3 +1,5 @@
+//#define ASTARDEBUG //Enable for some debug lines showing the DynamicGridObstacle activity
+
 using UnityEngine;
 using System.Collections;
 using Pathfinding;
@@ -10,22 +12,17 @@ using Pathfinding;
  * 
  * \see AstarPath.UpdateGraphs
  */
-[RequireComponent(typeof(Collider))]
 public class DynamicGridObstacle : MonoBehaviour {
 	
 	Collider col;
-
-	/** The minimum change along one of the axis of the bounding box of collider to trigger a graph update */
-	public float updateError = 1;
-
-	/** Time in seconds between bounding box checks */
-	public float checkTime = 0.2F;
+	public float updateError = 1; /**< The minimum change along one of the axis of the bounding box of collider to trigger a graph update */
+	public float checkTime = 0.2F; /**< Time in seconds between bounding box checks */
 	
 	/** Use this for initialization */
 	void Start () {
 		col = GetComponent<Collider>();
-		if (col == null) {
-			throw new System.Exception ("A collider must be attached to the GameObject for DynamicGridObstacle to work");
+		if (GetComponent<Collider>() == null) {
+			Debug.LogError ("A collider must be attached to the GameObject for DynamicGridObstacle to work");
 		}
 		StartCoroutine (UpdateGraphs ());
 	}
@@ -104,6 +101,10 @@ public class DynamicGridObstacle : MonoBehaviour {
 			AstarPath.active.UpdateGraphs (newBounds);
 		}
 		
+#if ASTARDEBUG
+		Debug.DrawLine (prevBounds.min,prevBounds.max,Color.yellow);
+		Debug.DrawLine (newBounds.min,newBounds.max,Color.red);
+#endif
 		
 		prevBounds = newBounds;
 	}
