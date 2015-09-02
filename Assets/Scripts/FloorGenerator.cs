@@ -78,7 +78,6 @@ public class FloorGenerator : MonoBehaviour
 
     public void AddPathNode(int index)
     {
-        Debug.Log(index);
         GameObject node = Instantiate(PathNode, CellsRoot.GetChild(index).position, Quaternion.identity) as GameObject;
         node.transform.parent = NodesRoot;
     }

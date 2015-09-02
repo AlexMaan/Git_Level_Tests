@@ -1,7 +1,9 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using UnityEditor;
 
-public class FloorCell : MonoBehaviour 
+public class FloorCell : MonoBehaviour
 {
     public enum CellType
     {
@@ -11,11 +13,11 @@ public class FloorCell : MonoBehaviour
         Door
     }
 
-    public enum CellState
+    [System.Serializable]
+    public struct CellState
     {
-        Off,
-        On,
-        Blocked
+        public int ID;
+        public string Name;
     }
 
     public enum DoorState
@@ -24,86 +26,87 @@ public class FloorCell : MonoBehaviour
         Closed
     }
 
+    [System.Serializable]
+    public struct StateTransition
+    {
+        public List<ConditionCellStruct> Conditions;
+        public float TransitionTime;
+        public int TransitionToID;
+        public DoorState TransitionToDoorState;
+    }
+
+    [System.Serializable]
+    public struct ConditionCellStruct
+    {
+        public FloorCell Cell;
+        public int CellStateID;
+    }
+
     [Header("Cell Type")]
     public CellType Type;
 
     [Header("Cell Materials")]
     public Material FloorMaterial;
     public Material WallMaterial;
-    public Material InteractiveOffMaterial;
-    public Material InteractiveOnMaterial;
-    public Material InteractiveBlockMaterial;
+    public Material[] InteractiveStatesMaterials;
     public Material DoorOpenedMaterial;
     public Material DoorClosedMaterial;
 
 
     [Header("Interactive Cell Properties")]
-    public CellState InteractiveCellState;
-    public FloorCell TargetCell;
-    public CellState TargetInteractiveState;
-    public DoorState TargetDoorState;
-
+    public List<CellState> InteractiveCellStates;
+    public int CurrentInteractiveCellStateID;
+    public int StartInteractiveCellStateID;
+    public int PressedInteractiveCellStateID;
+    public int BlockedInteractiveCellStateID;
 
     [Header("Door Properties")]
     public DoorState DoorCellState;
 
+    public List<StateTransition> StateTransitions;
+
+    private List<FloorCell> targets = new List<FloorCell>();
+
     public int ID;
+
+    private int currentTransitionTimerIndex;
+    private float timer;
+
+    private Transform TimerBar;
+
+    void Start()
+    {
+        RegisterTargets();
+        CurrentInteractiveCellStateID = StartInteractiveCellStateID;
+        currentTransitionTimerIndex = -1;
+
+        TimerBar = GameObject.FindGameObjectWithTag("Transition Timer Bar").transform;
+    }
 
     public void UpdateCellType()
     {
         switch (Type)
         {
-               case CellType.Floor:
+            case CellType.Floor:
                 GetComponent<MeshRenderer>().material = FloorMaterial;
                 break;
-               case CellType.Wall:
+            case CellType.Wall:
                 GetComponent<MeshRenderer>().material = WallMaterial;
                 break;
-               case CellType.Interactive:
+            case CellType.Interactive:
                 UpdateInteractiveCellType();
                 break;
-                case CellType.Door:
+            case CellType.Door:
                 UpdateDoorCellType();
                 break;
         }
     }
 
-    public void UpdateInteractiveTargetState(CellState state)
-    {
-        InteractiveCellState = state;
-        UpdateInteractiveCellType();
-    }
-
-    public void UpdateDoorTargetState(DoorState state)
-    {
-        DoorCellState = state;
-        if (state == DoorState.Opened)
-        {
-            FloorGenerator.Instance.AddPathNode(ID);
-            AstarPath.active.Scan();
-        }
-        if (state == DoorState.Closed)
-        {
-            FloorGenerator.Instance.RemovePathNode(ID);
-            AstarPath.active.Scan();
-        }
-
-        UpdateDoorCellType();
-    }
-
     void UpdateInteractiveCellType()
     {
-        switch (InteractiveCellState)
+        if (CurrentInteractiveCellStateID < InteractiveStatesMaterials.Length)
         {
-            case CellState.Off:
-                GetComponent<MeshRenderer>().material = InteractiveOffMaterial;
-                break;
-            case CellState.On:
-                GetComponent<MeshRenderer>().material = InteractiveOnMaterial;
-                break;
-            case CellState.Blocked:
-                GetComponent<MeshRenderer>().material = InteractiveBlockMaterial;
-                break;
+            GetComponent<MeshRenderer>().material = InteractiveStatesMaterials[CurrentInteractiveCellStateID];
         }
     }
 
@@ -112,7 +115,7 @@ public class FloorCell : MonoBehaviour
         switch (DoorCellState)
         {
             case DoorState.Closed:
-                GetComponent<MeshRenderer>().material = DoorClosedMaterial;               
+                GetComponent<MeshRenderer>().material = DoorClosedMaterial;
                 break;
             case DoorState.Opened:
                 GetComponent<MeshRenderer>().material = DoorOpenedMaterial;
@@ -120,25 +123,138 @@ public class FloorCell : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter(Collider other)
+    private void RegisterTargets()
     {
-        if (other.tag == "Player" && Type == CellType.Interactive && TargetCell != null)
+        foreach (StateTransition stateTransition in StateTransitions)
         {
-            if (InteractiveCellState == CellState.Off)
+            foreach (ConditionCellStruct conditionCellStruct in stateTransition.Conditions)
             {
-                InteractiveCellState = CellState.On;
-                switch (TargetCell.Type)
-                {
-                    case CellType.Interactive:
-                        TargetCell.UpdateInteractiveTargetState(TargetInteractiveState);
-                        UpdateInteractiveCellType();
-                        break;
-                    case CellType.Door:
-                        TargetCell.UpdateDoorTargetState(TargetDoorState);
-                        UpdateInteractiveCellType();
-                        break;
-                }
+                conditionCellStruct.Cell.RegisterTarget(this);
             }
         }
     }
+
+    public void RegisterTarget(FloorCell cell)
+    {
+        targets.Add(cell);
+    }
+
+    void OnTriggerEnter(Collider other)
+    {  
+        if (other.tag == "Player" && Type == CellType.Interactive)
+        {
+            if (CurrentInteractiveCellStateID != BlockedInteractiveCellStateID && CurrentInteractiveCellStateID != PressedInteractiveCellStateID)
+            {
+                PressCell();
+            }
+        }
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        if (other.tag == "Player" && Type == CellType.Interactive)
+        {
+            ResetTargetsTransitions();
+        }
+    }
+
+    private void ResetTargetsTransitions()
+    {
+        for (int i = 0; i < targets.Count; i++)
+        {
+            if (targets[i].StopTransition())
+            {
+                CurrentInteractiveCellStateID = StartInteractiveCellStateID;
+                UpdateInteractiveCellType();
+            }
+        }
+    }
+
+    private bool StopTransition()
+    {
+        if (currentTransitionTimerIndex != -1)
+        {
+            currentTransitionTimerIndex = -1;
+            timer = 0f;
+            TimerBar.localScale = Vector3.one;
+            return true;
+        }
+        return false;
+    }
+
+    private void PressCell()
+    {
+        CurrentInteractiveCellStateID = PressedInteractiveCellStateID;
+        UpdateInteractiveCellType();
+        for (int i = 0; i < targets.Count; i++)
+        {
+            targets[i].CheckCondition();
+        }
+    }
+
+    public void CheckCondition()
+    {
+        for (int i = 0; i < StateTransitions.Count; i++)
+        {
+            if (CheckStateTransition(StateTransitions[i]))
+            {
+                StartTransition(i);
+            }
+        }
+    }
+
+    private void StartTransition(int i)
+    {
+        currentTransitionTimerIndex = i;
+        timer = 0f;
+    }
+
+    void Update()
+    {
+        if (currentTransitionTimerIndex != -1)
+        {
+            //Debug.Log(ID + " " + currentTransitionTimerIndex);
+            timer += Time.deltaTime;
+
+            if (StateTransitions[currentTransitionTimerIndex].TransitionTime != 0f)
+            {
+                TimerBar.localScale = new Vector3(1f, (1f - timer / StateTransitions[currentTransitionTimerIndex].TransitionTime), 1f);
+            }
+            
+            if (timer >= StateTransitions[currentTransitionTimerIndex].TransitionTime)
+            {
+                TransitState(StateTransitions[currentTransitionTimerIndex]);
+                currentTransitionTimerIndex = -1;
+            }
+        }
+    }
+
+    private void TransitState(StateTransition stateTransition)
+    {
+        TimerBar.localScale = Vector3.one;
+        if (Type == CellType.Interactive)
+        {
+            CurrentInteractiveCellStateID = stateTransition.TransitionToID;
+        }
+        else
+        {
+            DoorCellState = stateTransition.TransitionToDoorState;
+        }
+        UpdateCellType();
+    }
+
+    private bool CheckStateTransition(StateTransition stateTransition)
+    {
+        for (int i = 0; i < stateTransition.Conditions.Count; i++)
+        {
+            if (stateTransition.Conditions[i].Cell.CurrentInteractiveCellStateID !=
+                stateTransition.Conditions[i].CellStateID)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 }
+
