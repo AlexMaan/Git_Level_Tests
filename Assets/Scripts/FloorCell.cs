@@ -74,6 +74,8 @@ public class FloorCell : MonoBehaviour
 
     private Transform TimerBar;
 
+    public bool isPlayerTarget = false;
+
     void Start()
     {
         RegisterTargets();
@@ -140,7 +142,13 @@ public class FloorCell : MonoBehaviour
     }
 
     void OnTriggerEnter(Collider other)
-    {  
+    {
+        if (other.tag == "Player" && isPlayerTarget == true)
+        {
+            isPlayerTarget = false;
+            GetPlayerNewTarget();
+        }
+
         if (other.tag == "Player" && Type == CellType.Interactive)
         {
             if (CurrentInteractiveCellStateID != BlockedInteractiveCellStateID && CurrentInteractiveCellStateID != PressedInteractiveCellStateID)
@@ -148,6 +156,11 @@ public class FloorCell : MonoBehaviour
                 PressCell();
             }
         }
+    }
+
+    void GetPlayerNewTarget()
+    {
+        GameObject.FindGameObjectWithTag("Player").GetComponent<AIPath>().target = TargetsManager.GetTarget();
     }
 
     void OnTriggerExit(Collider other)

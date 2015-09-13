@@ -28,6 +28,7 @@ public class Cell : Editor
 
     private int interactiveCellStatesSize;
     private int stateTransitionsSize;
+    private int conditionsSize;
     //private int interactiveStatesMaterialsSize;
 
 
@@ -180,7 +181,7 @@ public class Cell : Editor
                 EditorGUILayout.LabelField("Transit Conditions", EditorStyles.boldLabel);
 
                 EditorGUI.indentLevel++;
-                int conditionsSize = conditions.arraySize;
+                conditionsSize = conditions.arraySize;
                 conditionsSize = EditorGUILayout.IntField("Conditions Count:", conditionsSize);
 
                 if (conditionsSize != conditions.arraySize)
@@ -189,7 +190,7 @@ public class Cell : Editor
                     {
                         conditions.InsertArrayElementAtIndex(conditions.arraySize);
                     }
-                    while (stateTransitionsSize < conditions.arraySize)
+                    while (conditionsSize < conditions.arraySize)
                     {
                         conditions.DeleteArrayElementAtIndex(conditions.arraySize - 1);
                     }
