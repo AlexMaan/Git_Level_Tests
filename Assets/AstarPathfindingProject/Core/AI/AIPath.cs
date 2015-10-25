@@ -133,6 +133,7 @@ public class AIPath : MonoBehaviour {
 
 	protected Vector3 lastFoundWaypointPosition;
 	protected float lastFoundWaypointTime = -9999;
+    //public bool tReached = false;
 
 	/** Returns if the end-of-path has been reached
 	 * \see targetReached */
@@ -253,12 +254,13 @@ public class AIPath : MonoBehaviour {
 		seeker.StartPath (GetFeetPosition(), targetPosition);
 	}
 	
-	public virtual void OnTargetReached () {
-		//End of path has been reached
-		//If you want custom logic for when the AI has reached it's destination
-		//add it here
-		//You can also create a new script which inherits from this one
-		//and override the function in that script
+	public virtual void OnTargetReached ()
+	{
+	    //End of path has been reached
+	    //If you want custom logic for when the AI has reached it's destination
+	    //add it here
+	    //You can also create a new script which inherits from this one
+	    //and override the function in that script
 	}
 	
 	/** Called when a requested path has finished calculation.

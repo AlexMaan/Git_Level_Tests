@@ -6,7 +6,6 @@ public class PauseButton : MonoBehaviour
 {
     public void PauseGame()
     {
-
         if (Time.timeScale == 1f)
         {
             Time.timeScale = 0f;
@@ -16,6 +15,7 @@ public class PauseButton : MonoBehaviour
         {
             Time.timeScale = 1f;
             transform.FindChild("Text").GetComponent<Text>().text = "Pause";
+            GameObject.FindGameObjectWithTag("Player").GetComponent<Player>().Unpause();
         }
         
     }

@@ -352,54 +352,5 @@ public class Cell : Editor
 
 
         serializedObject.ApplyModifiedProperties();
-
-
-
-
-
-        /*FloorCell cell = (FloorCell)target;
-
-        serializedObject.Update();
-
-        EditorGUILayout.PropertyField(cellType);
-
-        if (cell.Type == FloorCell.CellType.Interactive)
-        {
-            EditorGUILayout.PropertyField(cellState);
-            EditorGUILayout.PropertyField(targetCell);
-            if (cell.TargetCell != null)
-            {
-                if (cell.TargetCell.Type == FloorCell.CellType.Interactive)
-                {
-                    EditorGUILayout.PropertyField(targetInteractiveState);
-                }
-                if (cell.TargetCell.Type == FloorCell.CellType.Door)
-                {
-                    EditorGUILayout.PropertyField(targetDoorState);
-                }
-            }
-        }
-
-        if (cell.Type == FloorCell.CellType.Door)
-        {
-            EditorGUILayout.PropertyField(doorState);
-        }
-
-        foreach (FloorCell t in targets)
-        {
-            t.UpdateCellType();
-        }
-
-        EditorGUILayout.PropertyField(floorMaterial);
-        EditorGUILayout.PropertyField(wallMaterial);
-        EditorGUILayout.Space();
-        EditorGUILayout.PropertyField(interactiveOffMaterial);
-        EditorGUILayout.PropertyField(interactiveOnMaterial);
-        EditorGUILayout.PropertyField(interactiveBlockedMaterial);
-        EditorGUILayout.Space();
-        EditorGUILayout.PropertyField(doorClosedMaterial);
-        EditorGUILayout.PropertyField(doorOpenedMaterial);
-
-        serializedObject.ApplyModifiedProperties();*/
     }    
 }
